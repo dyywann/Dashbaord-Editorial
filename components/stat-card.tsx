@@ -11,9 +11,10 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon: Icon, iconColor, bgColor }: StatCardProps) {
   return (
-    <Card className="p-5 border border-gray-200 bg-white hover:shadow-md transition-shadow">
+    // TAMBAHKAN class rounded di sini (contoh: rounded-2xl)
+    <Card className="p-5 border border-gray-200 bg-white shadow-none rounded-lg">
       <div className="flex items-center gap-4">
-        {/* Class flex-shrink-0 sudah diubah menjadi shrink-0 di bawah ini */}
+        {/* Opsional: Anda juga bisa menyesuaikan rounded icon di sini agar serasi */}
         <div className={`shrink-0 w-14 h-14 flex items-center justify-center rounded-xl ${bgColor}`}>
           <Icon className={`w-6 h-6 ${iconColor}`} strokeWidth={2} />
         </div>

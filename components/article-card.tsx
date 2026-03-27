@@ -1,6 +1,7 @@
 "use client"; // Wajib ada agar tombol onClick bisa berfungsi di Next.js App Router
 
-import { Eye, MoreVertical, CheckCircle2, Globe } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Eye, MoreVertical, CheckCircle2, Globe, ArrowDownCircle, Check, AlertCircle, XCircle } from "lucide-react";
 
 interface Author {
   name: string;
@@ -10,48 +11,53 @@ interface Author {
 }
 
 interface ArticleCardProps {
-  status: "submitted" | "under-review" | "approved" | "published";
+  status: "submitted" | "under-review" | "approved" | "published" | "rejected";
   category: string;
   timeAgo: string;
   title: string;
   author: Author;
   wordCount: number;
-  onReviewClick?: () => void; // Prop ini yang menangkap klik dari Dashboard
+  onReviewClick?: () => void;
   onPublishClick?: () => void;
+  onTakedownClick?: () => void;
+  onActionClick?: (actionName: string) => void;
 }
 
 const statusStyles = {
-  submitted: {
-    dot: "bg-blue-600",
-    text: "Submitted",
-    bg: "bg-blue-50",
-    textColor: "text-blue-700",
-  },
-  "under-review": {
-    dot: "bg-yellow-500",
-    text: "Under Review",
-    bg: "bg-yellow-50",
-    textColor: "text-yellow-800",
-  },
-  approved: {
-    dot: "bg-green-600",
-    text: "Approved",
-    bg: "bg-green-50",
-    textColor: "text-green-700",
-  },
-  published: {
-    dot: "bg-gray-500",
-    text: "Published",
-    bg: "bg-gray-50",
-    textColor: "text-gray-700",
-  },
+  submitted: { dot: "bg-blue-600", text: "Submitted", bg: "bg-blue-50", textColor: "text-blue-700" },
+  "under-review": { dot: "bg-yellow-500", text: "Under Review", bg: "bg-yellow-50", textColor: "text-yellow-800" },
+  approved: { dot: "bg-green-600", text: "Approved", bg: "bg-green-50", textColor: "text-green-700" },
+  published: { dot: "bg-green-600", text: "Published", bg: "bg-green-50", textColor: "text-green-700" },
+  rejected: { dot: "bg-red-600", text: "Rejected", bg: "bg-red-50", textColor: "text-red-700" },
 };
 
-export function ArticleCard({ status, category, timeAgo, title, author, wordCount, onReviewClick, onPublishClick }: ArticleCardProps) {
+export function ArticleCard({ status, category, timeAgo, title, author, wordCount, onReviewClick, onPublishClick, onTakedownClick, onActionClick }: ArticleCardProps) {
   const currentStatus = statusStyles[status];
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleMenuClick = (action: string) => {
+    if (status !== "under-review") return; // Cegah klik jika bukan under-review
+    setIsMenuOpen(false);
+    if (onActionClick) onActionClick(action);
+  };
+
+  // Variabel untuk mengecek apakah dropdown bisa dipakai atau tidak
+  const isDropdownActive = status === "under-review";
+
   return (
-    <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 transition-colors">
+    <div className="bg-white p-6 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className={`flex items-center gap-1.5 px-3 py-1 ${currentStatus.bg} ${currentStatus.textColor} rounded-full text-xs font-medium`}>
@@ -65,20 +71,60 @@ export function ArticleCard({ status, category, timeAgo, title, author, wordCoun
         <div className="flex items-center gap-3">
           <div className="text-gray-500 text-xs">{wordCount} kata</div>
 
+          {/* Tombol Publish */}
           {status === "approved" && (
             <button onClick={onPublishClick} className="flex items-center gap-2 px-4 py-2 bg-[#22c55e] hover:bg-green-600 text-white rounded-md text-sm font-medium transition-colors cursor-pointer">
-              <Globe className="w-4 h-4" />
-              Publish
+              <Globe className="w-4 h-4" /> Publish
+            </button>
+          )}
+
+          {/* Tombol Takedown */}
+          {status === "published" && (
+            <button onClick={onTakedownClick} className="flex items-center gap-2 px-4 py-2 bg-white border border-red-400 text-red-500 hover:bg-red-50 rounded-md text-sm font-medium transition-colors cursor-pointer">
+              <ArrowDownCircle className="w-4 h-4" /> Takedown
             </button>
           )}
 
           {/* Tombol Review */}
           <button onClick={onReviewClick} className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer">
-            <Eye className="w-4 h-4 text-gray-600" />
-            Review
+            <Eye className="w-4 h-4 text-gray-600" /> Review
           </button>
 
-          <MoreVertical className="w-5 h-5 text-gray-500 hover:text-gray-700 cursor-pointer" />
+          {/* TITIK TIGA DENGAN DROPDOWN MENU */}
+          <div className="relative" ref={menuRef}>
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`p-1.5 rounded-md transition-colors ${isMenuOpen ? "bg-gray-100" : "hover:bg-gray-50"}`}>
+              <MoreVertical className="w-5 h-5 text-gray-500 hover:text-gray-700 cursor-pointer" />
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1.5 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
+                <button
+                  onClick={() => handleMenuClick("Approve")}
+                  disabled={!isDropdownActive}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${isDropdownActive ? "text-green-700 hover:bg-gray-100 cursor-pointer" : "text-gray-400 opacity-60 cursor-not-allowed"}`}
+                >
+                  <Check className={`w-4 h-4 ${isDropdownActive ? "text-green-600" : "text-gray-400"}`} />
+                  Approve Artikel
+                </button>
+                <button
+                  onClick={() => handleMenuClick("Revision")}
+                  disabled={!isDropdownActive}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${isDropdownActive ? "text-amber-700 hover:bg-gray-100 cursor-pointer" : "text-gray-400 opacity-60 cursor-not-allowed"}`}
+                >
+                  <AlertCircle className={`w-4 h-4 ${isDropdownActive ? "text-amber-600" : "text-gray-400"}`} />
+                  Minta Revisi
+                </button>
+                <button
+                  onClick={() => handleMenuClick("Reject")}
+                  disabled={!isDropdownActive}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${isDropdownActive ? "text-red-600 hover:bg-gray-100 cursor-pointer" : "text-gray-400 opacity-60 cursor-not-allowed"}`}
+                >
+                  <XCircle className={`w-4 h-4 ${isDropdownActive ? "text-red-500" : "text-gray-400"}`} />
+                  Tolak Artikel
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
