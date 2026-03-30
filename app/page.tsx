@@ -114,22 +114,13 @@ export default function DashboardPage() {
     });
   };
 
+  // LOGIKA BARU: Sekarang semua opsi melempar user ke halaman review dengan parameter yang sesuai
   const handleDropdownAction = (id: number, actionName: string, title: string) => {
     if (actionName === "Approve") {
-      const updatedArticles = articles.map((a) => (a.id === id ? { ...a, status: "approved" as ArticleStatus } : a));
-      setArticles(updatedArticles);
-      localStorage.setItem("editorArticles", JSON.stringify(updatedArticles));
-
-      toast({
-        className: "border-2 border-[#22c55e]",
-        title: <span className="text-black text-base font-bold">Artikel disetujui</span>,
-        description: <span className="text-black text-sm font-normal mt-1 block">Artikel "{title.substring(0, 40)}..." telah disetujui.</span>,
-      });
+      router.push(`/review/${id}?action=approval`);
     } else if (actionName === "Revision") {
-      // LOGIKA BARU: Kirim parameter ?action=revision
       router.push(`/review/${id}?action=revision`);
     } else if (actionName === "Reject") {
-      // LOGIKA BARU: Kirim parameter ?action=reject
       router.push(`/review/${id}?action=reject`);
     }
   };
@@ -138,7 +129,6 @@ export default function DashboardPage() {
 
   return (
     <main className={`min-h-screen bg-slate-50/50 ${inter.className}`}>
-      {/* (Bagian Header & Tabs persis sama dengan kode Anda sebelumnya, saya pangkas komentarnya agar tidak terlalu panjang) */}
       <div className="">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard Editorial</h1>

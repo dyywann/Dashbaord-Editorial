@@ -2,17 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Inter, Libre_Baskerville } from "next/font/google";
 import { useToast } from "../../../hooks/use-toast";
-import { ArrowLeft, FileText, Clock, BookOpenText, CheckCircle2, AlertCircle, XCircle, Check, Send, Globe } from "lucide-react";
+import { ArrowLeft, FileText, Clock, BookOpenText, CheckCircle2, AlertCircle, XCircle, Check, Send, Globe, CircleCheckBig } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
-const libreBaskerville = Libre_Baskerville({
-  weight: ["400", "700"],
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-});
+const libreBaskerville = Libre_Baskerville({ weight: ["400", "700"], subsets: ["latin"], style: ["normal", "italic"] });
 
 const REVISION_REASONS = [
   "Data atau statistik perlu diperbarui",
@@ -35,16 +31,20 @@ const statusStyles = {
 export default function ArticleReviewPage() {
   const params = useParams();
   const router = useRouter();
+
+  const searchParams = useSearchParams();
+  const actionQuery = searchParams?.get("action") as "revision" | "reject" | null;
+  const defaultPanel = actionQuery || "default";
+
   const articleId = params?.articleId as string;
   const { toast } = useToast();
   const [article, setArticle] = useState<any>(null);
 
-  const [activePanel, setActivePanel] = useState<"default" | "revision" | "reject">("default");
+  const [activePanel, setActivePanel] = useState<"default" | "revision" | "reject" | "approval">(defaultPanel);
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [revisionNotes, setRevisionNotes] = useState("");
   const [rejectReason, setRejectReason] = useState("");
 
-  // LOGIKA BACA DATA: Mengambil data global dari LocalStorage
   useEffect(() => {
     if (articleId) {
       const storedArticles = localStorage.getItem("editorArticles");
@@ -56,50 +56,40 @@ export default function ArticleReviewPage() {
     }
   }, [articleId]);
 
-  // FUNGSI HELPER: Untuk menyimpan status terbaru ke LocalStorage
   const updateArticleData = (updatedData: any) => {
-    setArticle(updatedData); // Update tampilan lokal
+    setArticle(updatedData);
     const storedArticles = localStorage.getItem("editorArticles");
     if (storedArticles) {
       const allArticles = JSON.parse(storedArticles);
       const newArticles = allArticles.map((a: any) => (a.id === updatedData.id ? updatedData : a));
-      localStorage.setItem("editorArticles", JSON.stringify(newArticles)); // Simpan ke browser
+      localStorage.setItem("editorArticles", JSON.stringify(newArticles));
     }
   };
 
   const handleReviewAction = (action: string) => {
     if (action === "Revision") return setActivePanel("revision");
     if (action === "Reject") return setActivePanel("reject");
-
-    if (action === "Approve") {
-      updateArticleData({ ...article, status: "approved" });
-      toast({
-        className: "border-2 border-[#22c55e]",
-        title: <span className="text-black text-base font-bold">Artikel disetujui</span>,
-        description: (
-          <span className="text-black text-sm font-normal mt-1 block">
-            Artikel <span className="font-normal text-sm text-black">"{article?.title}"</span> telah disetujui untuk dipublikasikan.
-          </span>
-        ),
-      });
-      router.push("/");
-      return;
-    }
+    if (action === "Approve") return setActivePanel("approval");
 
     if (action === "Publish") {
       updateArticleData({ ...article, status: "published" });
       toast({
         className: "border-2 border-[#22c55e]",
         title: <span className="text-black text-base font-bold">Artikel berhasil dipublish</span>,
-        description: (
-          <span className="text-black text-sm font-normal mt-1 block leading-relaxed">
-            Artikel <span className="font-normal text-sm text-black">"{article?.title}"</span> sekarang sudah mengudara dan dapat diakses oleh publik.
-          </span>
-        ),
+        description: <span className="text-black text-sm font-normal mt-1 block">Artikel "{article?.title}" sekarang sudah mengudara.</span>,
       });
       router.push("/");
-      return;
     }
+  };
+
+  const handleSubmitApprove = () => {
+    updateArticleData({ ...article, status: "approved" });
+    toast({
+      className: "border-2 border-[#22c55e]",
+      title: <span className="text-black text-base font-bold">Artikel disetujui</span>,
+      description: <span className="text-black text-sm font-normal mt-1 block">Artikel "{article?.title}" telah disetujui.</span>,
+    });
+    router.push("/");
   };
 
   const handleToggleReason = (reason: string) => {
@@ -111,23 +101,12 @@ export default function ArticleReviewPage() {
       toast({ title: "Gagal Mengirim", description: "Pilih minimal satu alasan atau isi catatan tambahan." });
       return;
     }
-
-    updateArticleData({
-      ...article,
-      status: "submitted",
-      editorNote: { reasons: selectedReasons, text: revisionNotes },
-    });
-
+    updateArticleData({ ...article, status: "submitted", editorNote: { reasons: selectedReasons, text: revisionNotes } });
     toast({
       className: "border-2 border-[#f97316]",
       title: <span className="text-black text-base font-bold">Permintaan revisi terkirim</span>,
-      description: (
-        <span className="text-black text-sm font-normal mt-1 block leading-relaxed">
-          Artikel <span className="font-normal text-sm text-black">"{article?.title}"</span> telah dikembalikan ke kontributor untuk di revisi
-        </span>
-      ),
+      description: <span className="text-black text-sm font-normal mt-1 block">Artikel telah dikembalikan untuk direvisi</span>,
     });
-
     router.push("/");
   };
 
@@ -136,23 +115,12 @@ export default function ArticleReviewPage() {
       toast({ title: "Gagal Mengirim", description: "Alasan penolakan wajib diisi." });
       return;
     }
-
-    updateArticleData({
-      ...article,
-      status: "rejected",
-      editorNote: { reasons: [], text: rejectReason },
-    });
-
+    updateArticleData({ ...article, status: "rejected", editorNote: { reasons: [], text: rejectReason } });
     toast({
       className: "border-2 border-red-500",
       title: <span className="text-black text-base font-bold">Artikel ditolak</span>,
-      description: (
-        <span className="text-black text-sm font-normal mt-1 block leading-relaxed">
-          Artikel <span className="font-normal text-sm text-black">"{article?.title}"</span> telah ditolak
-        </span>
-      ),
+      description: <span className="text-black text-sm font-normal mt-1 block">Artikel telah ditolak</span>,
     });
-
     router.push("/");
   };
 
@@ -162,25 +130,31 @@ export default function ArticleReviewPage() {
 
   return (
     <main className={`min-h-screen flex flex-col bg-white ${inter.className}`}>
-      {/* Navbar Atas */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB] px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all">
-            <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
+      {/* NAVBAR ATAS BARU: Mengikuti Style Teks Polos & Elegan */}
+      <div className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB] pl-30 pr-16 py-5 flex items-start justify-between">
+        <div className="flex items-center gap-6">
+          {/* Tombol Kembali (Teks Polos, Tanpa Border/Outline) */}
+          <Link href="/" className="flex items-center gap-3 text-sm font-medium text-[#0F1729] hover:text-slate-600 transition-colors">
+            <ArrowLeft className="w-4 h-4" strokeWidth={2} /> Kembali ke Dashboard
           </Link>
-          <div className="h-4 bg-gray-200" />
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
-            <FileText className="w-4 h-4" /> Preview Artikel
+
+          {/* Garis Vertikal Pemisah Halus */}
+          <div className="h-7 w-px bg-gray-300" />
+
+          {/* Label Preview */}
+          <div className="flex items-center gap-3 text-sm font-medium text-[#0F1729]">
+            <FileText className="w-4 h-4 text-gray-500" strokeWidth={2} /> Preview Artikel
           </div>
         </div>
-        <div className={`flex items-center gap-1.5 px-3 py-1 ${currentStatus.bg} ${currentStatus.textColor} rounded-full text-xs font-semibold transition-colors duration-500`}>
+
+        {/* Badge Status di Kanan Atas */}
+        <div className={`flex items-center gap-1.5 px-3 py-1 ${currentStatus.bg} ${currentStatus.textColor} rounded-full text-xs font-semibold`}>
           <div className={`w-1.5 h-1.5 rounded-full ${currentStatus.dot}`} /> {currentStatus.text}
         </div>
       </div>
 
-      {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Kolom Kiri: Konten Artikel */}
+        {/* Kolom Kiri */}
         <div className="flex-1 overflow-y-auto bg-[#F5F5F5]">
           <div className="max-w-4xl mx-auto px-12 py-12">
             <div className="flex items-center gap-4 mb-6">
@@ -194,16 +168,14 @@ export default function ArticleReviewPage() {
                 {article.wordCount} kata
               </div>
             </div>
-
             <h1 className="text-4xl font-extrabold text-[#0F1729] mb-8 leading-[1.2]">{article.title}</h1>
-
             <div className="flex items-center gap-4 mb-10 pb-10 border-b border-[#E5E7EB]">
               <div className="w-12 h-12 flex items-center justify-center bg-slate-900 text-white rounded-full font-normal text-lg">{article.author.initials}</div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-semibold text-slate-900 text-base">{article.author.name}</p>
                   {article.author.verified && (
-                    <div className="flex items-center gap-1 px-2.5 py-0.5 bg-[#FEF5E1] text-[#122349] rounded-full text-xs font-medium ">
+                    <div className="flex items-center gap-1 px-2.5 py-0.5 bg-[#FEF5E1] text-[#122349] rounded-full text-xs font-medium">
                       <CheckCircle2 className="w-3 h-3 text-[#122349]" /> Verified Expert
                     </div>
                   )}
@@ -212,33 +184,13 @@ export default function ArticleReviewPage() {
                 <p className="text-sm text-slate-500 font-normal">{article.author.affiliation}</p>
               </div>
             </div>
-
             <article className="prose prose-slate prose-lg max-w-none text-slate-700 leading-relaxed space-y-6">
-              <p>
-                Industri financial technology (fintech) di Indonesia terus menunjukkan pertumbuhan yang signifikan pada kuartal keempat tahun 2025. Data dari Otoritas Jasa Keuangan (OJK) menunjukkan bahwa total penyaluran pinjaman fintech
-                lending mencapai Rp 85,4 triliun, meningkat 22,3% dibandingkan periode yang sama tahun sebelumnya.{" "}
-              </p>
+              <p>Industri financial technology (fintech) di Indonesia terus menunjukkan pertumbuhan yang signifikan pada kuartal keempat tahun 2025...</p>
               <h2 className="text-xl font-bold text-slate-900 mb-4">Pertumbuhan Segmen Payment</h2>
-              <p>
-                Segmen pembayaran digital menjadi pendorong utama pertumbuhan sektor fintech. Nilai transaksi pembayaran digital mencapai Rp 120 triliun pada Q4 2025, didorong oleh meningkatnya adopsi QRIS di kalangan UMKM dan pedagang
-                ritel. Penetrasi QRIS kini telah mencapai 45 juta merchant, meningkat dari 30 juta di akhir 2024.
-              </p>
+              <p>Segmen pembayaran digital menjadi pendorong utama pertumbuhan sektor fintech...</p>
               <h2 className="text-xl font-bold text-slate-900 mb-4">Tantangan Regulasi</h2>
-              <p>
-                Di sisi regulasi, OJK telah menerbitkan beberapa kebijakan baru yang bertujuan untuk meningkatkan perlindungan konsumen dan stabilitas industri. Penerapan regulatory sandbox yang lebih ketat telah mendorong konsolidasi di
-                industri, dengan jumlah platform fintech lending terdaftar menurun dari 102 menjadi 85 perusahaan.
-              </p>
-              <p>
-                Namun demikian, konsolidasi ini justru meningkatkan kualitas industri secara keseluruhan. Tingkat kredit bermasalah (TWP90) menurun dari 3,2% menjadi 2,8%, menunjukkan perbaikan dalam manajemen risiko di kalangan pemain
-                industri.
-              </p>
-              <h2 className="text-xl font-bold text-slate-900 mb-4">Outlook 2026</h2>
-              <p>
-                Memasuki tahun 2026, industri fintech Indonesia diproyeksikan akan terus tumbuh dengan didorong oleh beberapa faktor: pertumbuhan ekonomi digital yang kuat, peningkatan literasi keuangan digital, dan dukungan regulasi yang
-                lebih kondusif. Kolaborasi antara fintech dan perbankan konvensional juga diprediksi akan semakin intensif melalui model open banking.
-              </p>
+              <p>Di sisi regulasi, OJK telah menerbitkan beberapa kebijakan baru...</p>
             </article>
-
             <div className="mt-16 pt-10 border-t border-[#E5E7EB]">
               <p className="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-[0.7px]">Sumber Data</p>
               <div className="flex gap-2">
@@ -252,14 +204,14 @@ export default function ArticleReviewPage() {
           </div>
         </div>
 
-        {/* Kolom Kanan: Panel Review */}
+        {/* Panel Kanan */}
         <div className="w-105 border-l border-[#E5E7EB] bg-white overflow-y-auto px-8 py-10 relative">
           <h2 className="text-xl font-bold text-slate-900 mb-1 ">Panel Review</h2>
           <p className="text-sm text-slate-500 mb-8">Ambil keputusan editorial untuk artikel ini</p>
 
           <div className="bg-white p-5 border border-slate-200 rounded-md mb-10">
             <div className="flex items-center gap-2 mb-4">
-              <div className={`flex items-center gap-1.5 px-3 py-1 ${currentStatus.bg} ${currentStatus.textColor} rounded-full text-xs font-medium transition-colors duration-500`}>
+              <div className={`flex items-center gap-1.5 px-3 py-1 ${currentStatus.bg} ${currentStatus.textColor} rounded-full text-xs font-medium`}>
                 <div className={`w-1.5 h-1.5 rounded-full ${currentStatus.dot}`} />
                 {currentStatus.text}
               </div>
@@ -272,27 +224,40 @@ export default function ArticleReviewPage() {
             </div>
           </div>
 
-          {/* LOGIKA KONDISI 1: STATUS "UNDER REVIEW" */}
           {article.status === "under-review" &&
             (activePanel === "default" ? (
               <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
-                <button
-                  onClick={() => handleReviewAction("Approve")}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-[#22c55e] hover:bg-green-600 text-white rounded-md text-sm font-medium transition-all shadow-lg shadow-green-100 cursor-pointer"
-                >
-                  <Check className="w-4 h-4" /> Approve Artikel
+                <button onClick={() => handleReviewAction("Approve")} className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-[#22c55e] hover:bg-green-600 text-white rounded-md text-sm font-medium cursor-pointer">
+                  <CircleCheckBig className="w-4 h-4" /> Approve Artikel
                 </button>
                 <button
                   onClick={() => handleReviewAction("Revision")}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 border border-amber-200 bg-white hover:bg-amber-50 text-amber-700 rounded-md text-sm font-medium transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 border border-[#FED6B9] bg-[#F9FAFB] hover:bg-amber-50 text-[#F97415] rounded-md text-sm font-medium cursor-pointer"
                 >
                   <AlertCircle className="w-4 h-4" /> Minta Revisi
                 </button>
                 <button
                   onClick={() => handleReviewAction("Reject")}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 border border-red-200 bg-white hover:bg-red-50 text-red-600 rounded-md text-sm font-medium transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 border border-red-200 bg-[#F9FAFB] hover:bg-red-50 text-red-600 rounded-md text-sm font-medium cursor-pointer"
                 >
                   <XCircle className="w-4 h-4" /> Tolak Artikel
+                </button>
+              </div>
+            ) : activePanel === "approval" ? (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold text-slate-900 text-base">Konfirmasi Approval</h3>
+                  <button onClick={() => setActivePanel("default")} className="text-sm font-medium text-slate-500 hover:text-slate-800 cursor-pointer">
+                    Batal
+                  </button>
+                </div>
+
+                <div className="bg-[#E3F6EB] border border-[#27AE60] rounded-md p-4 mb-6">
+                  <p className="text-sm text-[#757575] leading-relaxed font-base">Artikel ini akan masuk ke antrian publikasi Databoks Expert Corner.</p>
+                </div>
+
+                <button onClick={handleSubmitApprove} className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-[#22c55e] hover:bg-green-600 text-white rounded-md text-sm font-medium cursor-pointer">
+                  <CircleCheckBig className="w-4 h-4" /> Ya, Approve Artikel
                 </button>
               </div>
             ) : activePanel === "revision" ? (
@@ -305,7 +270,7 @@ export default function ArticleReviewPage() {
                       setSelectedReasons([]);
                       setRevisionNotes("");
                     }}
-                    className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                    className="text-sm font-medium text-slate-500 hover:text-slate-800 cursor-pointer"
                   >
                     Batal
                   </button>
@@ -314,10 +279,10 @@ export default function ArticleReviewPage() {
                   {REVISION_REASONS.map((reason) => (
                     <label key={reason} className="flex items-start gap-3 cursor-pointer group">
                       <input type="checkbox" className="sr-only" checked={selectedReasons.includes(reason)} onChange={() => handleToggleReason(reason)} />
-                      <div className="mt-0.5 flex items-center justify-center w-4 h-4 rounded border border-gray-200 bg-white transition-all shrink-0 group-hover:border-gray-300 group-has-checked:bg-[#f97316] group-has-checked:border-[#f97316] group-focus-within:ring-2 group-focus-within:ring-orange-500/20">
+                      <div className="mt-0.5 flex items-center justify-center w-4 h-4 rounded border border-gray-200 bg-white transition-all shrink-0 group-has-checked:bg-[#f97316] group-has-checked:border-[#f97316]">
                         <Check className="w-3 h-3 text-white opacity-0 transition-opacity group-has-checked:opacity-100" strokeWidth={4} />
                       </div>
-                      <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 leading-snug">{reason}</span>
+                      <span className="text-sm font-medium text-slate-600">{reason}</span>
                     </label>
                   ))}
                 </div>
@@ -331,7 +296,7 @@ export default function ArticleReviewPage() {
                     onChange={(e) => setRevisionNotes(e.target.value)}
                   />
                 </div>
-                <button onClick={handleSubmitRevision} className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-[#f97316] hover:bg-orange-600 text-white rounded-md text-sm font-medium transition-all cursor-pointer">
+                <button onClick={handleSubmitRevision} className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-[#f97316] hover:bg-orange-600 text-white rounded-md text-sm font-medium cursor-pointer">
                   <Send className="w-4 h-4" /> Kirim Permintaan Revisi
                 </button>
               </div>
@@ -344,7 +309,7 @@ export default function ArticleReviewPage() {
                       setActivePanel("default");
                       setRejectReason("");
                     }}
-                    className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                    className="text-sm font-medium text-slate-500 hover:text-slate-800 cursor-pointer"
                   >
                     Batal
                   </button>
@@ -361,16 +326,12 @@ export default function ArticleReviewPage() {
                     onChange={(e) => setRejectReason(e.target.value)}
                   />
                 </div>
-                <button
-                  onClick={handleSubmitReject}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm font-medium transition-all shadow-md shadow-red-100 cursor-pointer"
-                >
+                <button onClick={handleSubmitReject} className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm font-medium cursor-pointer">
                   <XCircle className="w-4 h-4" /> Tolak Artikel
                 </button>
               </div>
             ))}
 
-          {/* LOGIKA KONDISI 2: STATUS "SUBMITTED" */}
           {article.status === "submitted" && (
             <div className="bg-[#FFF7ED] border border-[#FFEDD5] rounded-xl p-6 animate-in fade-in duration-500">
               <div className="flex items-center gap-2 mb-4">
@@ -399,7 +360,6 @@ export default function ArticleReviewPage() {
             </div>
           )}
 
-          {/* LOGIKA KONDISI 3: STATUS "REJECTED" */}
           {article.status === "rejected" && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-6 animate-in fade-in duration-500">
               <div className="flex items-center gap-2 mb-4">
@@ -411,7 +371,6 @@ export default function ArticleReviewPage() {
             </div>
           )}
 
-          {/* LOGIKA KONDISI 4: STATUS "APPROVED" */}
           {article.status === "approved" && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
@@ -421,14 +380,13 @@ export default function ArticleReviewPage() {
               </div>
               <button
                 onClick={() => handleReviewAction("Publish")}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-[#22c55e] hover:bg-green-600 text-white rounded-md text-sm font-medium transition-all shadow-lg shadow-green-100 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-[#22c55e] hover:bg-green-600 text-white rounded-md text-sm font-medium shadow-lg shadow-green-100 cursor-pointer"
               >
                 <Globe className="w-4 h-4" /> Publish Artikel
               </button>
             </div>
           )}
 
-          {/* LOGIKA KONDISI 5: STATUS "PUBLISHED" */}
           {article.status === "published" && (
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center animate-in fade-in duration-300">
               <Globe className="w-10 h-10 text-slate-400 mx-auto mb-3" />

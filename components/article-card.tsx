@@ -1,7 +1,7 @@
 "use client"; // Wajib ada agar tombol onClick bisa berfungsi di Next.js App Router
 
 import { useState, useRef, useEffect } from "react";
-import { Eye, MoreVertical, CheckCircle2, Globe, ArrowDownCircle, Check, AlertCircle, XCircle } from "lucide-react";
+import { Eye, MoreVertical, CheckCircle2, Globe, ArrowDownCircle, AlertCircle, XCircle, CircleCheckBig, BadgeCheck } from "lucide-react";
 
 interface Author {
   name: string;
@@ -48,13 +48,15 @@ export function ArticleCard({ status, category, timeAgo, title, author, wordCoun
   }, []);
 
   const handleMenuClick = (action: string) => {
-    if (status !== "under-review") return; // Cegah klik jika bukan under-review
     setIsMenuOpen(false);
-    if (onActionClick) onActionClick(action);
-  };
 
-  // Variabel untuk mengecek apakah dropdown bisa dipakai atau tidak
-  const isDropdownActive = status === "under-review";
+    // Jika user klik "Lihat Detail", fungsikan sama seperti tombol Review (mata)
+    if (action === "Detail") {
+      if (onReviewClick) onReviewClick();
+    } else {
+      if (onActionClick) onActionClick(action);
+    }
+  };
 
   return (
     <div className="bg-white p-6 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
@@ -90,7 +92,7 @@ export function ArticleCard({ status, category, timeAgo, title, author, wordCoun
             <Eye className="w-4 h-4 text-gray-600" /> Review
           </button>
 
-          {/* TITIK TIGA DENGAN DROPDOWN MENU */}
+          {/* TITIK TIGA DENGAN DROPDOWN MENU DINAMIS */}
           <div className="relative" ref={menuRef}>
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`p-1.5 rounded-md transition-colors ${isMenuOpen ? "bg-gray-100" : "hover:bg-gray-50"}`}>
               <MoreVertical className="w-5 h-5 text-gray-500 hover:text-gray-700 cursor-pointer" />
@@ -98,30 +100,28 @@ export function ArticleCard({ status, category, timeAgo, title, author, wordCoun
 
             {isMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1.5 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
-                <button
-                  onClick={() => handleMenuClick("Approve")}
-                  disabled={!isDropdownActive}
-                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${isDropdownActive ? "text-green-700 hover:bg-gray-100 cursor-pointer" : "text-gray-400 opacity-60 cursor-not-allowed"}`}
-                >
-                  <Check className={`w-4 h-4 ${isDropdownActive ? "text-green-600" : "text-gray-400"}`} />
-                  Approve Artikel
-                </button>
-                <button
-                  onClick={() => handleMenuClick("Revision")}
-                  disabled={!isDropdownActive}
-                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${isDropdownActive ? "text-amber-700 hover:bg-gray-100 cursor-pointer" : "text-gray-400 opacity-60 cursor-not-allowed"}`}
-                >
-                  <AlertCircle className={`w-4 h-4 ${isDropdownActive ? "text-amber-600" : "text-gray-400"}`} />
-                  Minta Revisi
-                </button>
-                <button
-                  onClick={() => handleMenuClick("Reject")}
-                  disabled={!isDropdownActive}
-                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${isDropdownActive ? "text-red-600 hover:bg-gray-100 cursor-pointer" : "text-gray-400 opacity-60 cursor-not-allowed"}`}
-                >
-                  <XCircle className={`w-4 h-4 ${isDropdownActive ? "text-red-500" : "text-gray-400"}`} />
-                  Tolak Artikel
-                </button>
+                {/* LOGIKA BARU: Render 3 Aksi Jika Under Review, Render 1 Aksi jika status lain */}
+                {status === "under-review" ? (
+                  <>
+                    <button onClick={() => handleMenuClick("Approve")} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors text-green-700 hover:bg-gray-100 cursor-pointer">
+                      <CircleCheckBig className="w-4 h-4 text-green-600" />
+                      Approve Artikel
+                    </button>
+                    <button onClick={() => handleMenuClick("Revision")} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors text-amber-700 hover:bg-gray-100 cursor-pointer">
+                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                      Minta Revisi
+                    </button>
+                    <button onClick={() => handleMenuClick("Reject")} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors text-red-600 hover:bg-gray-100 cursor-pointer">
+                      <XCircle className="w-4 h-4 text-red-500" />
+                      Tolak Artikel
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => handleMenuClick("Detail")} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100 cursor-pointer">
+                    <Eye className="w-4 h-4 text-gray-500" />
+                    Lihat Detail
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -137,7 +137,7 @@ export function ArticleCard({ status, category, timeAgo, title, author, wordCoun
             <p className="font-semibold text-gray-900 text-sm">{author.name}</p>
             {author.verified && (
               <div className="flex items-center gap-1 px-2.5 py-0.5 bg-yellow-50 text-yellow-800 rounded-full text-xs font-medium border border-yellow-200">
-                <CheckCircle2 className="w-3 h-3 text-yellow-700" />
+                <BadgeCheck className="w-3 h-3 text-yellow-700" />
                 Verified Expert
               </div>
             )}
