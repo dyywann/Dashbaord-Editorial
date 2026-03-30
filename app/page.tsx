@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Inter } from "next/font/google";
 import { StatCard } from "@/components/stat-card";
 import { ArticleCard } from "@/components/article-card";
+import { ContributorCard } from "@/components/contributor-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "../hooks/use-toast";
 import { Clock, Check, Users, TrendingUp, FileText } from "lucide-react";
@@ -71,9 +72,16 @@ const initialArticles: ArticleData[] = [
   },
 ];
 
+const mockContributors = [
+  { id: 1, name: "Dr. Rina Hartanti", initials: "DR", affiliation: "Universitas Indonesia", category: "Ekonomi Digital", timeAgo: "1 hari lalu" },
+  { id: 2, name: "Prof. Hendra Wijaya", initials: "PH", affiliation: "Universitas Padjadjaran", category: "Keuangan & Perbankan", timeAgo: "2 hari lalu" },
+  { id: 3, name: "Prof. Hendra Wijaya", initials: "PH", affiliation: "Universitas Padjadjaran", category: "Keuangan & Perbankan", timeAgo: "2 hari lalu" },
+];
+
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("articles");
   const [articles, setArticles] = useState<ArticleData[]>(initialArticles);
+  const [contributors, setContributors] = useState(mockContributors);
   const [isClient, setIsClient] = useState(false);
 
   const { toast } = useToast();
@@ -86,15 +94,12 @@ export default function DashboardPage() {
     else localStorage.setItem("editorArticles", JSON.stringify(initialArticles));
   }, []);
 
-  const handleReviewClick = (id: number) => {
-    router.push(`/review/${id}`);
-  };
+  const handleReviewClick = (id: number) => router.push(`/review/${id}`);
 
   const handlePublishClick = (id: number, title: string) => {
     const updatedArticles = articles.map((a) => (a.id === id ? { ...a, status: "published" as ArticleStatus } : a));
     setArticles(updatedArticles);
     localStorage.setItem("editorArticles", JSON.stringify(updatedArticles));
-
     toast({
       className: "border-2 border-[#22c55e]",
       title: <span className="text-black text-base font-bold">Artikel berhasil dipublish</span>,
@@ -106,7 +111,6 @@ export default function DashboardPage() {
     const updatedArticles = articles.map((a) => (a.id === id ? { ...a, status: "approved" as ArticleStatus } : a));
     setArticles(updatedArticles);
     localStorage.setItem("editorArticles", JSON.stringify(updatedArticles));
-
     toast({
       className: "border-2 border-red-500",
       title: <span className="text-black text-base font-bold">Artikel di-takedown</span>,
@@ -114,15 +118,30 @@ export default function DashboardPage() {
     });
   };
 
-  // LOGIKA BARU: Sekarang semua opsi melempar user ke halaman review dengan parameter yang sesuai
   const handleDropdownAction = (id: number, actionName: string, title: string) => {
-    if (actionName === "Approve") {
-      router.push(`/review/${id}?action=approval`);
-    } else if (actionName === "Revision") {
-      router.push(`/review/${id}?action=revision`);
-    } else if (actionName === "Reject") {
-      router.push(`/review/${id}?action=reject`);
-    }
+    if (actionName === "Approve") router.push(`/review/${id}?action=approval`);
+    else if (actionName === "Revision") router.push(`/review/${id}?action=revision`);
+    else if (actionName === "Reject") router.push(`/review/${id}?action=reject`);
+  };
+
+  // Fungsi Approve Kontributor
+  const handleApproveContributor = (id: number, name: string) => {
+    setContributors((prev) => prev.filter((c) => c.id !== id));
+    toast({
+      className: "border-2 border-[#22c55e]",
+      title: <span className="text-black text-base font-bold">Kontributor Disetujui</span>,
+      description: <span className="text-black text-sm font-normal mt-1 block">Akun untuk {name} berhasil diverifikasi.</span>,
+    });
+  };
+
+  // LOGIKA BARU: Fungsi Tolak Kontributor dengan Toast Merah
+  const handleRejectContributor = (id: number, name: string) => {
+    setContributors((prev) => prev.filter((c) => c.id !== id));
+    toast({
+      className: "bg-[#FF2B38]",
+      title: <span className="text-white text-base font-bold">Kontributor ditolak</span>,
+      description: <span className="text-white text-sm font-normal mt-1 block">Aplikasi {name} telah ditolak.</span>,
+    });
   };
 
   if (!isClient) return null;
@@ -147,19 +166,23 @@ export default function DashboardPage() {
             <TabsList className="inline-flex items-center gap-1 rounded-xl bg-slate-100 p-1.5 h-auto mb-6 border border-slate-200/60">
               <TabsTrigger
                 value="articles"
-                className="group flex items-center gap-2 rounded-lg px-4 py-2 text-base font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 hover:text-slate-700"
+                className="group flex items-center gap-2 rounded-lg px-4 py-2 text-base font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 hover:text-slate-700 cursor-pointer "
               >
                 <FileText className="w-5 h-5" />
                 <span>Artikel</span>
-                <span className="ml-1 flex h-6 items-center justify-center rounded-full px-2.5 text-sm font-semibold transition-colors group-data-[state=active]:bg-slate-100 group-data-[state=active]:text-slate-900 text-slate-500">5</span>
+                <span className="ml-1 flex h-6 items-center justify-center rounded-full px-2.5 text-sm font-semibold transition-colors group-data-[state=active]:bg-slate-100 group-data-[state=active]:text-slate-900 text-slate-500">
+                  {articles.length}
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="contributors"
-                className="group flex items-center gap-2 rounded-lg px-4 py-2 text-base font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 hover:text-slate-700"
+                className="group flex items-center gap-2 rounded-lg px-4 py-2 text-base font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 hover:text-slate-700 cursor-pointer"
               >
                 <Users className="w-5 h-5" />
                 <span>Kontributor</span>
-                <span className="ml-1 flex h-6 items-center justify-center rounded-full px-2.5 text-sm font-semibold transition-colors group-data-[state=active]:bg-slate-100 group-data-[state=active]:text-slate-900 text-slate-500">2</span>
+                <span className="ml-1 flex h-6 items-center justify-center rounded-full px-2.5 text-sm font-semibold transition-colors group-data-[state=active]:bg-slate-100 group-data-[state=active]:text-slate-900 text-slate-500">
+                  {contributors.length}
+                </span>
               </TabsTrigger>
             </TabsList>
 
@@ -192,10 +215,28 @@ export default function DashboardPage() {
             <TabsContent value="contributors" className="mt-0">
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                 <div className="mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Manajemen Kontributor</h2>
-                  <p className="text-gray-500 text-sm">Kelola data dan verifikasi kontributor</p>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Aplikasi Kontributor Baru</h2>
+                  <p className="text-gray-500 text-sm">Calon kontributor yang menunggu verifikasi</p>
                 </div>
-                <div className="bg-slate-50/50 rounded-lg border border-dashed border-slate-200 p-12 text-center text-slate-500">Fitur manajemen kontributor akan datang segera</div>
+                <div className="space-y-4">
+                  {contributors.length > 0 ? (
+                    contributors.map((contributor) => (
+                      <ContributorCard
+                        key={contributor.id}
+                        name={contributor.name}
+                        initials={contributor.initials}
+                        affiliation={contributor.affiliation}
+                        category={contributor.category}
+                        timeAgo={contributor.timeAgo}
+                        onApprove={() => handleApproveContributor(contributor.id, contributor.name)}
+                        // LOGIKA BARU: Tautkan fungsi tolak ke properti onReject
+                        onReject={() => handleRejectContributor(contributor.id, contributor.name)}
+                      />
+                    ))
+                  ) : (
+                    <div className="bg-slate-50/50 rounded-lg border border-dashed border-slate-200 p-12 text-center text-slate-500">Tidak ada kontributor baru yang menunggu verifikasi.</div>
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>
