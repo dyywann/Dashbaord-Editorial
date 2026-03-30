@@ -189,7 +189,7 @@ export default function DashboardPage() {
             <TabsContent value="articles" className="mt-0">
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <div className="mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Manajemen Artikel</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-1">Manajemen Artikel</h2>
                   <p className="text-gray-500 text-sm">Kelola artikel: review, publish, dan takedown</p>
                 </div>
                 <div className="space-y-4">
@@ -213,9 +213,9 @@ export default function DashboardPage() {
             </TabsContent>
 
             <TabsContent value="contributors" className="mt-0">
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <div className="mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Aplikasi Kontributor Baru</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-1">Aplikasi Kontributor Baru</h2>
                   <p className="text-gray-500 text-sm">Calon kontributor yang menunggu verifikasi</p>
                 </div>
                 <div className="space-y-4">

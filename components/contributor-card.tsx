@@ -9,12 +9,13 @@ interface ContributorCardProps {
   affiliation: string;
   category: string;
   timeAgo: string;
+  role?: string; // LOGIKA BARU: Tambahkan properti role (opsional)
   onApprove?: () => void;
   onReject?: () => void;
   onViewProfile?: () => void;
 }
 
-export function ContributorCard({ name, initials, affiliation, category, timeAgo, onApprove, onReject }: ContributorCardProps) {
+export function ContributorCard({ name, initials, affiliation, category, timeAgo, role, onApprove, onReject }: ContributorCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Mengunci scroll latar belakang saat modal terbuka
@@ -67,8 +68,8 @@ export function ContributorCard({ name, initials, affiliation, category, timeAgo
 
       {/* 2. TAMPILAN POP-UP MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4 w-screen h-screen overflow-hidden left-0 top-0 m-0">
-          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] relative z-101">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4 w-screen h-screen overflow-hidden left-0 top-0 m-0">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] relative z-[101]">
             {/* Modal Header */}
             <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between">
               <div>
@@ -91,7 +92,10 @@ export function ContributorCard({ name, initials, affiliation, category, timeAgo
                       <BadgeCheck className="w-3 h-3 text-[#122349]" /> Verified Expert
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2.5">Dosen Senior Fakultas Ekonomi dan Bisnis</p>
+
+                  {/* LOGIKA BARU: Teks jabatan kini dinamis membaca dari prop 'role' */}
+                  <p className="text-sm text-gray-600 mb-2.5">{role || "Pakar & Peneliti Independen"}</p>
+
                   <span className="inline-block px-3 py-1 border border-gray-200 rounded-full text-xs font-semibold text-gray-700">{category}</span>
                 </div>
               </div>
@@ -117,7 +121,7 @@ export function ContributorCard({ name, initials, affiliation, category, timeAgo
                 </div>
               </div>
 
-              {/* PEMISAH 2 (DIVIDER BARU YANG LEBIH JELAS) */}
+              {/* PEMISAH 2 */}
               <div className="h-px border border-gray-100 w-full" />
 
               <div>
